@@ -4,7 +4,7 @@ from drawable import Canvas, Drawable
 
 pygame.init()
 pygame.display.set_caption('Texedit.py')
-pygame.key.set_repeat(100, 25)
+pygame.key.set_repeat(150, 30)
 
 unit_size_x = 24
 unit_size_y = 25
@@ -57,6 +57,7 @@ def update():
                 elif cursor_y - unit_size_y >= 0:
                     cursor.setPosition((max_x, cursor_y - unit_size_y))
                 else:
+                    cursor.setPosition((max_x, cursor_y))
                     canvas.updatePositions(0, unit_size_y)
 
             if event.key == pygame.K_RIGHT:
@@ -65,6 +66,7 @@ def update():
                 elif cursor_y + unit_size_y < max_y:
                     cursor.setPosition((0, cursor_y + unit_size_y))
                 else:
+                    cursor.setPosition((0, cursor_y))
                     canvas.updatePositions(0, -unit_size_y)
 
             if event.key == pygame.K_UP:
@@ -157,6 +159,7 @@ def update():
                     cursor.setPosition((0, cursor_y + unit_size_y))
                 else:
                     canvas.updatePositions(0, -unit_size_y)
+                    cursor.setPosition((0, cursor_y))
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             mouse_x, mouse_y = pygame.mouse.get_pos()
