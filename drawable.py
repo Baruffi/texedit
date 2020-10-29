@@ -57,6 +57,11 @@ class Canvas(object):
     def updatePosition(self, id: str, position: Tuple[int, int]):
         self.drawables[id].setPosition(position)
 
+    def updatePositions(self, change_x, change_y):
+        for drawable in self.drawables.values():
+            drawable.setPosition((drawable.getX() + change_x,
+                                  drawable.getY() + change_y))
+
     def getIdByPosition(self, position: Tuple[int, int]):
         return next((id for id, drawable in self.drawables.items() if drawable.getPosition() == position), None)
 
