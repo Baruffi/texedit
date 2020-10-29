@@ -1,4 +1,6 @@
 from typing import Dict
+from tkinter import Tk
+from tkinter.filedialog import askopenfile
 import pygame
 from drawable import Canvas, Drawable
 
@@ -26,7 +28,7 @@ cursor = Drawable(cursor_surface, 0, 0)
 
 empty_surface = pygame.Surface((unit_size_x, unit_size_y))
 
-characters = 'QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasadfghjklzxcvbnm,.;:\\/[]{}()0123456789*+-=<>_&%$#@!?"\' '
+characters = 'QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasadfghjklzxcvbnm,.;:\\/[]{}()0123456789*+-=<>_&%$#@!?"\'´`~^ '
 
 character_dict: Dict[str, pygame.Surface] = {}
 
@@ -36,8 +38,13 @@ for character in characters:
 
 canvas = Canvas({})
 
+tk_root = Tk()
+tk_root.withdraw()
+
 
 def update():
+    global cursor_is_flashing
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -50,8 +57,10 @@ def update():
             if pygame.key.get_mods() & pygame.KMOD_CTRL:
                 if event.key == pygame.K_UP:
                     canvas.updatePositions(0, unit_size_y)
+
                 if event.key == pygame.K_DOWN:
                     canvas.updatePositions(0, -unit_size_y)
+
                 if event.key == pygame.K_c:
                     copy_text = ''
                     for drawable in canvas.getDrawables().values():
@@ -59,6 +68,7 @@ def update():
                             if drawable.getSurface() == character_surface:
                                 copy_text += character
                     pygame.scrap.put(pygame.SCRAP_TEXT, copy_text.encode('ascii'))
+
                 if event.key == pygame.K_v:
                     for character in pygame.scrap.get(pygame.SCRAP_TEXT).decode('ascii'):
                         if character == '\x00':
@@ -74,6 +84,52 @@ def update():
                         else:
                             canvas.updatePositions(0, -unit_size_y)
                             cursor.setPosition((0, cursor_y))
+
+                if event.key == pygame.K_o:
+                    if (f := askopenfile('r')):
+                        t = f.read()
+                        for character in t:
+                            if character == '\x00':
+                                continue
+                            if character == '\t':
+                                for _ in range(4):
+                                    cursor_x, cursor_y = cursor.getPosition()
+                                    below_cursor = canvas.getIdByPosition((cursor_x, cursor_y)) or 'empty' + str(canvas.getLength())
+                                    canvas.updateOrCreate(below_cursor, empty_surface, (cursor_x, cursor_y))
+
+                                    if cursor_x < max_x:
+                                        cursor.setPosition((cursor_x + unit_size_x, cursor_y))
+                                    elif cursor_y + unit_size_y < max_y:
+                                        cursor.setPosition((0, cursor_y + unit_size_y))
+                                    else:
+                                        canvas.updatePositions(0, -unit_size_y)
+                                        cursor.setPosition((0, cursor_y))
+                                continue
+                            if character == '\n':
+                                for _ in range((max_x + unit_size_x - cursor.getX()) // unit_size_x):
+                                    cursor_x, cursor_y = cursor.getPosition()
+                                    below_cursor = canvas.getIdByPosition((cursor_x, cursor_y)) or 'empty' + str(canvas.getLength())
+                                    canvas.updateOrCreate(below_cursor, empty_surface, (cursor_x, cursor_y))
+
+                                    if cursor_x < max_x:
+                                        cursor.setPosition((cursor_x + unit_size_x, cursor_y))
+                                    elif cursor_y + unit_size_y < max_y:
+                                        cursor.setPosition((0, cursor_y + unit_size_y))
+                                    else:
+                                        canvas.updatePositions(0, -unit_size_y)
+                                        cursor.setPosition((0, cursor_y))
+                                continue
+                            cursor_x, cursor_y = cursor.getPosition()
+                            below_cursor = canvas.getIdByPosition((cursor_x, cursor_y)) or 'empty' + str(canvas.getLength())
+                            canvas.updateOrCreate(below_cursor, character_dict[character], (cursor_x, cursor_y))
+
+                            if cursor_x < max_x:
+                                cursor.setPosition((cursor_x + unit_size_x, cursor_y))
+                            elif cursor_y + unit_size_y < max_y:
+                                cursor.setPosition((0, cursor_y + unit_size_y))
+                            else:
+                                canvas.updatePositions(0, -unit_size_y)
+                                cursor.setPosition((0, cursor_y))
                 continue
 
             if event.key == pygame.K_ESCAPE:
@@ -138,6 +194,7 @@ def update():
 
             if event.key == pygame.K_DELETE:
                 below_cursor = canvas.getIdByPosition((cursor_x, cursor_y))
+
                 if below_cursor:
                     canvas.updateSurface(
                         below_cursor, empty_surface)
@@ -213,7 +270,6 @@ def update():
             cursor.setPosition(grid_mouse_pos)
 
         if event.type == CURSORFLASH:
-            global cursor_is_flashing
             cursor_is_flashing = not cursor_is_flashing
             cursor.setSurface(cursor_flash) if cursor_is_flashing else cursor.setSurface(
                 cursor_surface)
