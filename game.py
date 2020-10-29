@@ -11,6 +11,9 @@ unit_size_y = 25
 
 screen = pygame.display.set_mode((unit_size_x * 24, unit_size_y * 24))
 
+pygame.scrap.init()
+pygame.scrap.set_mode(pygame.SCRAP_CLIPBOARD)
+
 font = pygame.font.Font('graphics/fonts/kongtext/kongtext.ttf', 24)
 
 CURSORFLASH = pygame.USEREVENT + 1
@@ -31,7 +34,7 @@ for character in characters:
     character_dict[character] = font.render(
         character, False, (255, 255, 255), (255, 0, 255))
 
-canvas = Canvas({'empty0': Drawable(empty_surface, 0, 0)})
+canvas = Canvas({})
 
 
 def update():
@@ -49,7 +52,32 @@ def update():
                     canvas.updatePositions(0, unit_size_y)
                 if event.key == pygame.K_DOWN:
                     canvas.updatePositions(0, -unit_size_y)
+                if event.key == pygame.K_c:
+                    copy_text = ''
+                    for drawable in canvas.getDrawables().values():
+                        for character, character_surface in character_dict.items():
+                            if drawable.getSurface() == character_surface:
+                                copy_text += character
+                    pygame.scrap.put(pygame.SCRAP_TEXT, copy_text.encode('ascii'))
+                if event.key == pygame.K_v:
+                    for character in pygame.scrap.get(pygame.SCRAP_TEXT).decode('ascii'):
+                        if character == '\x00':
+                            continue
+                        cursor_x, cursor_y = cursor.getPosition()
+                        below_cursor = canvas.getIdByPosition((cursor_x, cursor_y)) or 'empty' + str(canvas.getLength())
+                        canvas.updateOrCreate(below_cursor, character_dict[character], (cursor_x, cursor_y))
+
+                        if cursor_x < max_x:
+                            cursor.setPosition((cursor_x + unit_size_x, cursor_y))
+                        elif cursor_y + unit_size_y < max_y:
+                            cursor.setPosition((0, cursor_y + unit_size_y))
+                        else:
+                            canvas.updatePositions(0, -unit_size_y)
+                            cursor.setPosition((0, cursor_y))
                 continue
+
+            if event.key == pygame.K_ESCAPE:
+                canvas.setDrawables({})
 
             if event.key == pygame.K_LEFT:
                 if cursor_x - unit_size_x >= 0:
