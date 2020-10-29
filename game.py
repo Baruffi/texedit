@@ -23,7 +23,7 @@ cursor = Drawable(cursor_surface, 0, 0)
 
 empty_surface = pygame.Surface((unit_size_x, unit_size_y))
 
-characters = 'QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasadfghjklzxcvbnm,.;\\/[]{}()0123456789*+-=<>&%$#@!?"\' '
+characters = 'QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasadfghjklzxcvbnm,.;:\\/[]{}()0123456789*+-=<>_&%$#@!?"\' '
 
 character_dict: Dict[str, pygame.Surface] = {}
 
@@ -140,18 +140,27 @@ def update():
             if event.key == pygame.K_END:
                 cursor.setPosition((max_x, cursor_y))
 
-            if event.unicode in character_dict.keys():
-                below_cursor = canvas.getIdByPosition((cursor_x, cursor_y))
+            if event.key == pygame.K_PAGEUP:
+                canvas.updatePositions(0, max_y)
 
-                if below_cursor:
-                    canvas.updateSurface(
-                        below_cursor, character_dict[event.unicode])
+            if event.key == pygame.K_PAGEDOWN:
+                canvas.updatePositions(0, -max_y)
+
+            if event.key == pygame.K_TAB:
+                if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+                    if cursor_x - 4 * unit_size_x >= 0:
+                        cursor.setPosition((cursor_x - 4 * unit_size_x, cursor_y))
+                    else:
+                        cursor.setPosition((0, cursor_y))
                 else:
-                    len_drawables = len(canvas.getDrawables().keys())
-                    new_empty_zone = 'empty' + str(len_drawables)
+                    if cursor_x + 4 * unit_size_x < max_x:
+                        cursor.setPosition((cursor_x + 4 * unit_size_x, cursor_y))
+                    else:
+                        cursor.setPosition((max_x, cursor_y))
 
-                    canvas.setDrawable(new_empty_zone, Drawable(
-                        character_dict[event.unicode], cursor_x, cursor_y))
+            if event.unicode in character_dict.keys():
+                below_cursor = canvas.getIdByPosition((cursor_x, cursor_y)) or 'empty' + str(canvas.getLength())
+                canvas.updateOrCreate(below_cursor, character_dict[event.unicode], (cursor_x, cursor_y))
 
                 if cursor_x < max_x:
                     cursor.setPosition((cursor_x + unit_size_x, cursor_y))
@@ -168,7 +177,7 @@ def update():
             grid_mouse_pos = grid_mouse_x, grid_mouse_y
 
             if not canvas.getIdByPosition(grid_mouse_pos):
-                len_drawables = len(canvas.getDrawables().keys())
+                len_drawables = canvas.getLength()
                 new_empty_zone = 'empty' + str(len_drawables)
                 canvas.setDrawable(new_empty_zone, Drawable(
                     empty_surface, grid_mouse_x, grid_mouse_y))

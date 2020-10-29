@@ -39,6 +39,9 @@ class Canvas(object):
     def __init__(self, drawables: Dict[str, Drawable]):
         self.drawables = drawables
 
+    def getLength(self):
+        return len(self.drawables)
+
     def getDrawables(self):
         return self.drawables
 
@@ -57,7 +60,18 @@ class Canvas(object):
     def updatePosition(self, id: str, position: Tuple[int, int]):
         self.drawables[id].setPosition(position)
 
-    def updatePositions(self, change_x, change_y):
+    def updateOrCreate(self, id: str, surface: pygame.Surface, position: Tuple[int, int]):
+        if id in self.drawables.keys():
+            self.drawables[id].setSurface(surface)
+            self.drawables[id].setPosition(position)
+        else:
+            self.setDrawable(id, Drawable(surface, position[0], position[1]))
+
+    def updateSurfaces(self, new_surface: pygame.Surface):
+        for drawable in self.drawables.values():
+            drawable.setSurface(new_surface)
+
+    def updatePositions(self, change_x: int, change_y: int):
         for drawable in self.drawables.values():
             drawable.setPosition((drawable.getX() + change_x,
                                   drawable.getY() + change_y))
