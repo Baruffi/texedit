@@ -1,6 +1,6 @@
 from typing import Dict
 from tkinter import Tk
-from tkinter.filedialog import askopenfile
+from tkinter.filedialog import askopenfile, asksaveasfile
 import pygame
 from drawable import Canvas, Drawable
 
@@ -63,10 +63,43 @@ def update():
 
                 if event.key == pygame.K_c:
                     copy_text = ''
-                    for drawable in canvas.getDrawables().values():
+                    current_x, current_y = cursor_x, cursor_y
+
+                    while (drawable_id := canvas.getIdByPosition((current_x, current_y))):
+                        drawable = canvas.getDrawable(drawable_id)
+
+                        if drawable.getSurface() == empty_surface:
+                            break
+
+                        if current_x > 0:
+                            current_x -= unit_size_x
+                        else:
+                            current_x = max_x
+                            current_y -= unit_size_y
+
+                    if current_x < max_x:
+                        current_x += unit_size_x
+                    else:
+                        current_x = 0
+                        current_y += unit_size_y
+
+                    while (drawable_id := canvas.getIdByPosition((current_x, current_y))):
+                        drawable = canvas.getDrawable(drawable_id)
+
+                        if drawable.getSurface() == empty_surface:
+                            break
+
                         for character, character_surface in character_dict.items():
                             if drawable.getSurface() == character_surface:
                                 copy_text += character
+                                break
+
+                        if current_x < max_x:
+                            current_x += unit_size_x
+                        else:
+                            current_x = 0
+                            current_y += unit_size_y
+
                     pygame.scrap.put(pygame.SCRAP_TEXT, copy_text.encode('ascii'))
 
                 if event.key == pygame.K_v:
@@ -165,6 +198,24 @@ def update():
                             else:
                                 canvas.updatePositions(0, -unit_size_y)
                                 cursor.setPosition((0, cursor_y))
+
+                if event.key == pygame.K_s:
+                    if (f := asksaveasfile('w')):
+                        copy_text = ''
+                        character_bool = True
+
+                        for drawable in canvas.getDrawables().values():
+                            if character_bool and drawable.getSurface() == empty_surface:
+                                copy_text += '\n'
+                                character_bool = False
+                            else:
+                                for character, character_surface in character_dict.items():
+                                    if drawable.getSurface() == character_surface:
+                                        copy_text += character
+                                        character_bool = True
+                                        break
+
+                        f.write(copy_text)
 
                 if event.key == pygame.K_l:
                     canvas.setDrawables({})
