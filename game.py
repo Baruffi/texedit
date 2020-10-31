@@ -71,8 +71,39 @@ def update():
 
                 if event.key == pygame.K_v:
                     for character in pygame.scrap.get(pygame.SCRAP_TEXT).decode('ascii'):
-                        if character == '\x00':
+                        if character in '\x00\r':
                             continue
+
+                        if character == '\t':
+                            for _ in range(4):
+                                cursor_x, cursor_y = cursor.getPosition()
+                                below_cursor = canvas.getIdByPosition((cursor_x, cursor_y)) or 'empty' + str(canvas.getLength())
+                                canvas.updateOrCreate(below_cursor, character_dict[' '], (cursor_x, cursor_y))
+
+                                if cursor_x < max_x:
+                                    cursor.setPosition((cursor_x + unit_size_x, cursor_y))
+                                elif cursor_y + unit_size_y < max_y:
+                                    cursor.setPosition((0, cursor_y + unit_size_y))
+                                else:
+                                    canvas.updatePositions(0, -unit_size_y)
+                                    cursor.setPosition((0, cursor_y))
+                            continue
+
+                        if character == '\n':
+                            for _ in range((max_x + unit_size_x - cursor.getX()) // unit_size_x):
+                                cursor_x, cursor_y = cursor.getPosition()
+                                below_cursor = canvas.getIdByPosition((cursor_x, cursor_y)) or 'empty' + str(canvas.getLength())
+                                canvas.updateOrCreate(below_cursor, empty_surface, (cursor_x, cursor_y))
+
+                                if cursor_x < max_x:
+                                    cursor.setPosition((cursor_x + unit_size_x, cursor_y))
+                                elif cursor_y + unit_size_y < max_y:
+                                    cursor.setPosition((0, cursor_y + unit_size_y))
+                                else:
+                                    canvas.updatePositions(0, -unit_size_y)
+                                    cursor.setPosition((0, cursor_y))
+                            continue
+
                         cursor_x, cursor_y = cursor.getPosition()
                         below_cursor = canvas.getIdByPosition((cursor_x, cursor_y)) or 'empty' + str(canvas.getLength())
                         canvas.updateOrCreate(below_cursor, character_dict[character], (cursor_x, cursor_y))
@@ -87,15 +118,17 @@ def update():
 
                 if event.key == pygame.K_o:
                     if (f := askopenfile('r')):
-                        t = f.read()
+                        t: str = f.read()
+
                         for character in t:
-                            if character == '\x00':
+                            if character in '\x00\r':
                                 continue
+
                             if character == '\t':
                                 for _ in range(4):
                                     cursor_x, cursor_y = cursor.getPosition()
                                     below_cursor = canvas.getIdByPosition((cursor_x, cursor_y)) or 'empty' + str(canvas.getLength())
-                                    canvas.updateOrCreate(below_cursor, empty_surface, (cursor_x, cursor_y))
+                                    canvas.updateOrCreate(below_cursor, character_dict[' '], (cursor_x, cursor_y))
 
                                     if cursor_x < max_x:
                                         cursor.setPosition((cursor_x + unit_size_x, cursor_y))
@@ -105,6 +138,7 @@ def update():
                                         canvas.updatePositions(0, -unit_size_y)
                                         cursor.setPosition((0, cursor_y))
                                 continue
+
                             if character == '\n':
                                 for _ in range((max_x + unit_size_x - cursor.getX()) // unit_size_x):
                                     cursor_x, cursor_y = cursor.getPosition()
@@ -119,6 +153,7 @@ def update():
                                         canvas.updatePositions(0, -unit_size_y)
                                         cursor.setPosition((0, cursor_y))
                                 continue
+
                             cursor_x, cursor_y = cursor.getPosition()
                             below_cursor = canvas.getIdByPosition((cursor_x, cursor_y)) or 'empty' + str(canvas.getLength())
                             canvas.updateOrCreate(below_cursor, character_dict[character], (cursor_x, cursor_y))
@@ -130,10 +165,12 @@ def update():
                             else:
                                 canvas.updatePositions(0, -unit_size_y)
                                 cursor.setPosition((0, cursor_y))
-                continue
 
-            if event.key == pygame.K_ESCAPE:
-                canvas.setDrawables({})
+                if event.key == pygame.K_l:
+                    canvas.setDrawables({})
+                    cursor.setPosition((0, 0))
+
+                continue
 
             if event.key == pygame.K_LEFT:
                 if cursor_x - unit_size_x >= 0:
