@@ -349,12 +349,6 @@ def update():
             grid_mouse_y = (mouse_y // unit_size_y) * unit_size_y
             grid_mouse_pos = grid_mouse_x, grid_mouse_y
 
-            if not canvas.getIdByPosition(grid_mouse_pos):
-                len_drawables = canvas.getLength()
-                new_empty_zone = 'empty' + str(len_drawables)
-                canvas.setDrawable(new_empty_zone, Drawable(
-                    empty_surface, grid_mouse_x, grid_mouse_y))
-
             cursor.setPosition(grid_mouse_pos)
 
         if event.type == CURSORFLASH:
