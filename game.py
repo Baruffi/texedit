@@ -55,6 +55,12 @@ def update(text_editor: TextEditor):
                     pygame.scrap.put(pygame.SCRAP_TEXT,
                                      copy_text.encode('ascii'))
 
+                if event.key == pygame.K_x:
+                    copy_text = text_editor.getLine(True)
+
+                    pygame.scrap.put(pygame.SCRAP_TEXT,
+                                     copy_text.encode('ascii'))
+
                 if event.key == pygame.K_v:
                     text: str = pygame.scrap.get(
                         pygame.SCRAP_TEXT).decode('ascii')

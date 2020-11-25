@@ -241,6 +241,10 @@ class TextEditor(Editor):
         if len(sorted_x) != 0:
             final_x = sorted_x.pop()
 
+            while final_x < 0:
+                self.scrollLeft()
+                final_x += self.unit_size_x
+
             self.cursor.setX(final_x)
 
             while self.canvas.getDrawable(self.cursor.getPosition()):
@@ -277,7 +281,7 @@ class TextEditor(Editor):
                 self.editUnderCursor(character_surface)
                 self.moveCursorForwards()
 
-    def getLine(self):
+    def getLine(self, cut: bool = False):
         line = ''
         canvas = self.getCanvas()
         character_items = self.getCharacters().items()
@@ -291,6 +295,11 @@ class TextEditor(Editor):
                     break
 
             self.moveCursorForwards()
+
+        if cut:
+            for character in line:
+                self.moveCursorBackwards()
+                self.deleteUnderCursor()
 
         return line
 
