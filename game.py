@@ -114,14 +114,28 @@ def update(text_editor: TextEditor):
                 text_editor.setCursorPosition(limit_x)
 
             if event.key == pygame.K_PAGEUP:
-                height = text_editor.getHeight() // text_editor.getUnitSizeY()
-                for _ in range(height):
-                    text_editor.scrollUp()
+                if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+                    width = text_editor.getWidth() // text_editor.getUnitSizeX()
+
+                    for _ in range(width):
+                        text_editor.scrollLeft()
+                else:
+                    height = text_editor.getHeight() // text_editor.getUnitSizeY()
+
+                    for _ in range(height):
+                        text_editor.scrollUp()
 
             if event.key == pygame.K_PAGEDOWN:
-                height = text_editor.getHeight() // text_editor.getUnitSizeY()
-                for _ in range(height):
-                    text_editor.scrollDown()
+                if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+                    width = text_editor.getWidth() // text_editor.getUnitSizeX()
+
+                    for _ in range(width):
+                        text_editor.scrollRight()
+                else:
+                    height = text_editor.getHeight() // text_editor.getUnitSizeY()
+
+                    for _ in range(height):
+                        text_editor.scrollDown()
 
             if event.key == pygame.K_TAB:
                 unit_size_x = text_editor.getUnitSizeX()
