@@ -150,14 +150,25 @@ def update(text_editor: TextEditor):
                     text_editor.moveCursorForwards()
 
         if event.type == pygame.MOUSEBUTTONDOWN:
-            mouse_x, mouse_y = pygame.mouse.get_pos()
-            grid_mouse_x = (mouse_x // text_editor.getUnitSizeX()
-                            ) * text_editor.getUnitSizeX()
-            grid_mouse_y = (mouse_y // text_editor.getUnitSizeY()
-                            ) * text_editor.getUnitSizeY()
-            grid_mouse_pos = grid_mouse_x, grid_mouse_y
+            if event.button == 4:
+                if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+                    text_editor.scrollLeft()
+                else:
+                    text_editor.scrollUp()
+            elif event.button == 5:
+                if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+                    text_editor.scrollRight()
+                else:
+                    text_editor.scrollDown()
+            elif event.button == 1:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                grid_mouse_x = (mouse_x // text_editor.getUnitSizeX()
+                                ) * text_editor.getUnitSizeX()
+                grid_mouse_y = (mouse_y // text_editor.getUnitSizeY()
+                                ) * text_editor.getUnitSizeY()
+                grid_mouse_pos = grid_mouse_x, grid_mouse_y
 
-            text_editor.setCursorPosition(*grid_mouse_pos)
+                text_editor.setCursorPosition(*grid_mouse_pos)
 
         if event.type == pygame.VIDEORESIZE:
             new_grid_x = event.w // text_editor.getUnitSizeX()
