@@ -1,9 +1,10 @@
-from typing import Callable, Dict, Tuple
 from collections import deque
+from typing import Dict, Tuple
+
 import pygame
 
 
-class Drawable(object):
+class Cursor(object):
 
     def __init__(self, surface: pygame.Surface, x: int, y: int, *animation: pygame.Surface):
         self.surface = surface
@@ -43,53 +44,38 @@ class Drawable(object):
 
 class Canvas(object):
 
-    def __init__(self, drawables: Dict[str, Drawable]):
+    def __init__(self, drawables: Dict[Tuple[int, int], pygame.Surface]):
         self.drawables = drawables
-
-    def getLength(self):
-        return len(self.drawables)
 
     def getDrawables(self):
         return self.drawables
 
-    def setDrawables(self, drawables: Dict[str, Drawable]):
+    def setDrawables(self, drawables: Dict[Tuple[int, int], pygame.Surface]):
         self.drawables = drawables
 
-    def getDrawable(self, id: str):
-        return self.drawables[id]
+    def getDrawable(self, position: Tuple[int, int]):
+        return self.drawables.get(position)
 
-    def setDrawable(self, id: str, drawable: Drawable):
-        self.drawables[id] = drawable
+    def setDrawable(self, position: Tuple[int, int], surface: pygame.Surface):
+        self.drawables[position] = surface
 
-    def updateSurface(self, id: str, surface: pygame.Surface):
-        self.drawables[id].setSurface(surface)
+    def deleteDrawable(self, position: Tuple[int, int]):
+        self.drawables.pop(position, None)
 
-    def updatePosition(self, id: str, position: Tuple[int, int]):
-        self.drawables[id].setPosition(position)
+    def updatePositions(self, position: Tuple[int, int]):
+        newDrawables: Dict[Tuple[int, int], pygame.Surface] = {}
 
-    def updateOrCreate(self, id: str, surface: pygame.Surface, position: Tuple[int, int]):
-        if id in self.drawables.keys():
-            self.drawables[id].setSurface(surface)
-            self.drawables[id].setPosition(position)
-        else:
-            self.setDrawable(id, Drawable(surface, position[0], position[1]))
+        for oldPosition in self.drawables.keys():
+            newPosition = tuple(map(sum, zip(oldPosition, position)))
 
-    def updateSurfaces(self, new_surface: pygame.Surface):
-        for drawable in self.drawables.values():
-            drawable.setSurface(new_surface)
+            newDrawables[newPosition] = self.drawables.get(oldPosition)
 
-    def updatePositions(self, change_x: int, change_y: int):
-        for drawable in self.drawables.values():
-            drawable.setPosition((drawable.getX() + change_x,
-                                  drawable.getY() + change_y))
-
-    def getIdByPosition(self, position: Tuple[int, int]):
-        return next((id for id, drawable in self.drawables.items() if drawable.getPosition() == position), None)
+        self.setDrawables(newDrawables)
 
 
 class Editor(object):
 
-    def __init__(self, cursor: Drawable, canvas: Canvas, unit_size_x: int = 1, unit_size_y: int = 1, grid_size: int = 2):
+    def __init__(self, cursor: Cursor, canvas: Canvas, unit_size_x: int = 1, unit_size_y: int = 1, grid_size: int = 2):
         self.cursor = cursor
         self.canvas = canvas
         self.unit_size_x = max(unit_size_x, 1)
@@ -124,10 +110,10 @@ class Editor(object):
         self.canvas.setDrawables({})
 
     def scrollUp(self):
-        self.canvas.updatePositions(0, self.unit_size_y)
+        self.canvas.updatePositions((0, self.unit_size_y))
 
     def scrollDown(self):
-        self.canvas.updatePositions(0, -self.unit_size_y)
+        self.canvas.updatePositions((0, -self.unit_size_y))
 
     def setCursorPosition(self, x: int = None, y: int = None):
         if x == None and y == None:
@@ -207,18 +193,20 @@ class Editor(object):
 
     def editUnderCursor(self, surface: pygame.Surface):
         position = self.cursor.getPosition()
-        new_field_id = 'empty' + str(self.canvas.getLength())
 
-        under_cursor = self.canvas.getIdByPosition(position) or new_field_id
+        self.canvas.setDrawable(position, surface)
 
-        self.canvas.updateOrCreate(under_cursor, surface, position)
+    def deleteUnderCursor(self):
+        position = self.cursor.getPosition()
+
+        self.canvas.deleteDrawable(position)
 
 
 class TextEditor(Editor):
     def __init__(self, canvas: Canvas, font: pygame.font.Font, grid_size: int = 2):
         cursor_surface = font.render('|', False, (255, 255, 255), (0, 0, 0))
         flash_surface = font.render(' ', False, (255, 255, 255), (0, 0, 0))
-        cursor = Drawable(cursor_surface, 0, 0, flash_surface)
+        cursor = Cursor(cursor_surface, 0, 0, flash_surface)
 
         unit_size_x, unit_size_y = cursor_surface.get_width(), cursor_surface.get_height()
 
@@ -226,8 +214,6 @@ class TextEditor(Editor):
 
         character_dict: Dict[str, pygame.Surface] = {}
         characters = 'QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasadfghjklzxcvbnm,.;:\\/[]{}()0123456789*+-=<>_&%$#@!?"\'´`~^ '
-
-        character_dict[''] = pygame.Surface((unit_size_x, unit_size_y))
 
         for character in characters:
             character_dict[character] = font.render(
@@ -246,9 +232,6 @@ class TextEditor(Editor):
         else:
             return None
 
-    def getEmptyCharacter(self):
-        return self.characters['']
-
     def fillString(self, string: str):
         for character in string:
             if character in '\x00\r':
@@ -263,12 +246,10 @@ class TextEditor(Editor):
                         self.moveCursorForwards()
                     continue
 
-            empty_character = self.getEmptyCharacter()
             if character == '\n':
                 new_line = self.getWidth() - self.getCursor().getX()
                 new_line = new_line // self.getUnitSizeX()
                 for _ in range(new_line):
-                    self.editUnderCursor(empty_character)
                     self.moveCursorForwards()
                 continue
 
@@ -276,6 +257,56 @@ class TextEditor(Editor):
             if character_surface:
                 self.editUnderCursor(character_surface)
                 self.moveCursorForwards()
+
+    def getLine(self):
+        line = ''
+        canvas = self.getCanvas()
+        character_items = self.getCharacters().items()
+
+        while (surface := canvas.getDrawable(self.getCursor().getPosition())):
+            self.moveCursorBackwards()
+
+        self.moveCursorForwards()
+
+        while (surface := canvas.getDrawable(self.getCursor().getPosition())):
+            for character, character_surface in character_items:
+                if surface == character_surface:
+                    line += character
+                    break
+
+            self.moveCursorForwards()
+
+        return line
+
+    def getContent(self):
+        text = ''
+        drawables = self.getCanvas().getDrawables().items()
+        sorted_drawables_intermediate = sorted(
+            [((position[1], position[0]), surface) for position, surface in drawables])
+        sorted_drawables = [((position[1], position[0]), surface)
+                            for position, surface in sorted_drawables_intermediate]
+        character_items = self.getCharacters().items()
+
+        last_pos: Tuple[int, int] = None
+
+        for position, surface in sorted_drawables:
+            if last_pos != None:
+                limit_x = self.getLimitX()
+                last_x, last_y = last_pos
+                current_x, current_y = position
+
+                # TODO: FIX THIS FOR CORNERS
+                if (last_x < limit_x and last_x != current_x - self.unit_size_x) or (last_x >= limit_x and last_y != current_y - self.unit_size_y):
+                    text += '\n'
+
+            for character, character_surface in character_items:
+                if surface == character_surface:
+                    text += character
+                    break
+
+            last_pos = position
+
+        return text
 
     def cursorFlash(self):
         self.cursor.updateSurface()

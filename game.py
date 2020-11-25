@@ -44,33 +44,7 @@ def update(text_editor: TextEditor):
                     text_editor.scrollDown()
 
                 if event.key == pygame.K_c:
-                    copy_text = ''
-                    empty_character = text_editor.getEmptyCharacter()
-                    canvas = text_editor.getCanvas()
-                    character_items = text_editor.getCharacters().items()
-
-                    while (drawable_id := canvas.getIdByPosition(text_editor.getCursor().getPosition())):
-                        drawable = canvas.getDrawable(drawable_id)
-
-                        if drawable.getSurface() == empty_character:
-                            break
-
-                        text_editor.moveCursorBackwards()
-
-                    text_editor.moveCursorForwards()
-
-                    while (drawable_id := canvas.getIdByPosition(text_editor.getCursor().getPosition())):
-                        drawable = canvas.getDrawable(drawable_id)
-
-                        if drawable.getSurface() == empty_character:
-                            break
-
-                        for character, character_surface in character_items:
-                            if drawable.getSurface() == character_surface:
-                                copy_text += character
-                                break
-
-                        text_editor.moveCursorForwards()
+                    copy_text = text_editor.getLine()
 
                     pygame.scrap.put(pygame.SCRAP_TEXT,
                                      copy_text.encode('ascii'))
@@ -87,24 +61,9 @@ def update(text_editor: TextEditor):
 
                 if event.key == pygame.K_s:
                     if (file := asksaveasfile('w')):
-                        copy_text = ''
-                        empty_character = text_editor.getEmptyCharacter()
-                        drawables = text_editor.getCanvas().getDrawables().values()
-                        character_items = text_editor.getCharacters().items()
-                        character_bool = True
+                        content = text_editor.getContent()
 
-                        for drawable in drawables:
-                            if character_bool and drawable.getSurface() == empty_character:
-                                copy_text += '\n'
-                                character_bool = False
-                            else:
-                                for character, character_surface in character_items:
-                                    if drawable.getSurface() == character_surface:
-                                        copy_text += character
-                                        character_bool = True
-                                        break
-
-                        file.write(copy_text)
+                        file.write(content)
 
                 if event.key == pygame.K_l:
                     text_editor.setCursorPosition(0, 0)
@@ -129,20 +88,17 @@ def update(text_editor: TextEditor):
                 text_editor.setCursorPosition(0)
 
             if event.key == pygame.K_DELETE:
-                empty_character = text_editor.getEmptyCharacter()
-                text_editor.editUnderCursor(empty_character)
+                text_editor.deleteUnderCursor()
 
             if event.key == pygame.K_BACKSPACE:
                 text_editor.moveCursorBackwards()
 
-                empty_character = text_editor.getEmptyCharacter()
-                text_editor.editUnderCursor(empty_character)
+                text_editor.deleteUnderCursor()
 
             if event.key == pygame.K_INSERT:
                 text_editor.moveCursorForwards()
 
-                empty_character = text_editor.getEmptyCharacter()
-                text_editor.editUnderCursor(empty_character)
+                text_editor.deleteUnderCursor()
 
             if event.key == pygame.K_HOME:
                 text_editor.setCursorPosition(0)
@@ -204,11 +160,11 @@ def update(text_editor: TextEditor):
 def draw(text_editor: TextEditor, screen: pygame.Surface):
     screen.fill((0, 0, 0))
 
-    drawables = text_editor.getCanvas().getDrawables().values()
+    drawables = text_editor.getCanvas().getDrawables().items()
     cursor = text_editor.getCursor()
 
-    for drawable in drawables:
-        screen.blit(drawable.getSurface(), drawable.getPosition())
+    for position, surface in drawables:
+        screen.blit(surface, position)
 
     screen.blit(cursor.getSurface(), cursor.getPosition())
 
