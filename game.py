@@ -37,6 +37,12 @@ def update(text_editor: TextEditor):
 
         if event.type == pygame.KEYDOWN:
             if pygame.key.get_mods() & pygame.KMOD_CTRL:
+                if event.key == pygame.K_LEFT:
+                    text_editor.scrollLeft()
+
+                if event.key == pygame.K_RIGHT:
+                    text_editor.scrollRight()
+
                 if event.key == pygame.K_UP:
                     text_editor.scrollUp()
 
@@ -84,8 +90,8 @@ def update(text_editor: TextEditor):
                 text_editor.moveCursorDownwards()
 
             if event.key == pygame.K_RETURN:
+                text_editor.carriageReturn()
                 text_editor.moveCursorDownwards()
-                text_editor.setCursorPosition(0)
 
             if event.key == pygame.K_DELETE:
                 text_editor.deleteUnderCursor()
