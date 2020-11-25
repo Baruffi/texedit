@@ -291,13 +291,14 @@ class TextEditor(Editor):
 
         for position, surface in sorted_drawables:
             if last_pos != None:
-                limit_x = self.getLimitX()
                 last_x, last_y = last_pos
                 current_x, current_y = position
 
-                # TODO: FIX THIS FOR CORNERS
-                if (last_x < limit_x and last_x != current_x - self.unit_size_x) or (last_x >= limit_x and last_y != current_y - self.unit_size_y):
-                    text += '\n'
+                text += ' ' * ((current_x // self.unit_size_x) -
+                               (((last_x // self.unit_size_x) + 1) * int(current_y == last_y)))
+
+                text += '\n' * ((current_y // self.unit_size_y) -
+                                (last_y // self.unit_size_y) - int(last_x == self.getLimitX()))
 
             for character, character_surface in character_items:
                 if surface == character_surface:
