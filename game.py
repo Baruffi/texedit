@@ -13,11 +13,11 @@ def setup():
 
     font = pygame.font.Font('graphics/fonts/kongtext/kongtext.ttf', 24)
 
-    text_editor = TextEditor(Canvas({}), font, 24)
+    text_editor = TextEditor(Canvas({}), font, 24, 24)
 
     text_editor_size = text_editor.getWidth(), text_editor.getHeight()
 
-    screen = pygame.display.set_mode(text_editor_size)
+    screen = pygame.display.set_mode(text_editor_size, flags=pygame.RESIZABLE)
 
     pygame.scrap.init()
     pygame.scrap.set_mode(pygame.SCRAP_CLIPBOARD)
@@ -152,6 +152,15 @@ def update(text_editor: TextEditor):
             grid_mouse_pos = grid_mouse_x, grid_mouse_y
 
             text_editor.setCursorPosition(*grid_mouse_pos)
+
+        if event.type == pygame.VIDEORESIZE:
+            new_grid_x = event.w // text_editor.getUnitSizeX()
+            new_grid_y = event.h // text_editor.getUnitSizeY()
+
+            text_editor.setGridSize(new_grid_x, new_grid_y)
+
+            pygame.display.set_mode(
+                (text_editor.getWidth(), text_editor.getHeight()), flags=pygame.RESIZABLE)
 
         if event.type == CURSORFLASH:
             text_editor.cursorFlash()

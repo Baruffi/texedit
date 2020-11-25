@@ -75,12 +75,13 @@ class Canvas(object):
 
 class Editor(object):
 
-    def __init__(self, cursor: Cursor, canvas: Canvas, unit_size_x: int = 1, unit_size_y: int = 1, grid_size: int = 2):
+    def __init__(self, cursor: Cursor, canvas: Canvas, unit_size_x: int = 1, unit_size_y: int = 1, grid_size_x: int = 2, grid_size_y: int = 2):
         self.cursor = cursor
         self.canvas = canvas
         self.unit_size_x = max(unit_size_x, 1)
         self.unit_size_y = max(unit_size_y, 1)
-        self.grid_size = max(grid_size, 2)
+        self.grid_size_x = max(grid_size_x, 2)
+        self.grid_size_y = max(grid_size_y, 2)
 
     def getCursor(self):
         return self.cursor
@@ -95,16 +96,20 @@ class Editor(object):
         return self.unit_size_y
 
     def getWidth(self):
-        return self.unit_size_x * self.grid_size
+        return self.unit_size_x * self.grid_size_x
+
+    def setGridSize(self, grid_size_x: int, grid_size_y: int):
+        self.grid_size_x = max(grid_size_x, 2)
+        self.grid_size_y = max(grid_size_y, 2)
 
     def getHeight(self):
-        return self.unit_size_y * self.grid_size
+        return self.unit_size_y * self.grid_size_y
 
     def getLimitX(self):
-        return self.unit_size_x * (self.grid_size - 1)
+        return self.unit_size_x * (self.grid_size_x - 1)
 
     def getLimitY(self):
-        return self.unit_size_y * (self.grid_size - 1)
+        return self.unit_size_y * (self.grid_size_y - 1)
 
     def resetCanvas(self):
         self.canvas.setDrawables({})
@@ -203,14 +208,14 @@ class Editor(object):
 
 
 class TextEditor(Editor):
-    def __init__(self, canvas: Canvas, font: pygame.font.Font, grid_size: int = 2):
+    def __init__(self, canvas: Canvas, font: pygame.font.Font, grid_size_x: int = 2, grid_size_y: int = 2):
         cursor_surface = font.render('|', False, (255, 255, 255), (0, 0, 0))
         flash_surface = font.render(' ', False, (255, 255, 255), (0, 0, 0))
         cursor = Cursor(cursor_surface, 0, 0, flash_surface)
 
         unit_size_x, unit_size_y = cursor_surface.get_width(), cursor_surface.get_height()
 
-        super().__init__(cursor, canvas, unit_size_x, unit_size_y, grid_size)
+        super().__init__(cursor, canvas, unit_size_x, unit_size_y, grid_size_x, grid_size_y)
 
         character_dict: Dict[str, pygame.Surface] = {}
         characters = 'QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasadfghjklzxcvbnm,.;:\\/[]{}()0123456789*+-=<>_&%$#@!?"\'´`~^ '
@@ -287,25 +292,20 @@ class TextEditor(Editor):
                             for position, surface in sorted_drawables_intermediate]
         character_items = self.getCharacters().items()
 
-        last_pos: Tuple[int, int] = None
+        last_y: int = None
 
         for position, surface in sorted_drawables:
-            if last_pos != None:
-                last_x, last_y = last_pos
-                current_x, current_y = position
+            if last_y != None:
+                current_y = position[1] // self.unit_size_y
 
-                text += ' ' * ((current_x // self.unit_size_x) -
-                               (((last_x // self.unit_size_x) + 1) * int(current_y == last_y)))
-
-                text += '\n' * ((current_y // self.unit_size_y) -
-                                (last_y // self.unit_size_y) - int(last_x == self.getLimitX() and current_x == 0))
+                text += '\n' * (current_y - last_y)
 
             for character, character_surface in character_items:
                 if surface == character_surface:
                     text += character
                     break
 
-            last_pos = position
+            last_y = position[1] // self.unit_size_y
 
         return text
 
