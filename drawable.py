@@ -298,7 +298,7 @@ class TextEditor(Editor):
                                (((last_x // self.unit_size_x) + 1) * int(current_y == last_y)))
 
                 text += '\n' * ((current_y // self.unit_size_y) -
-                                (last_y // self.unit_size_y) - int(last_x == self.getLimitX()))
+                                (last_y // self.unit_size_y) - int(last_x == self.getLimitX() and current_x == 0))
 
             for character, character_surface in character_items:
                 if surface == character_surface:
