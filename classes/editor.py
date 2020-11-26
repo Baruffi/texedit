@@ -1,76 +1,9 @@
-from collections import deque
-from typing import Dict, Tuple
+from typing import Dict
 
 import pygame
 
-
-class Cursor(object):
-
-    def __init__(self, surface: pygame.Surface, x: int, y: int, *animation: pygame.Surface):
-        self.surface = surface
-        self.x = x
-        self.y = y
-        self.animation = deque(animation)
-
-    def getSurface(self):
-        return self.surface
-
-    def setSurface(self, surface: pygame.Surface):
-        self.surface = surface
-
-    def updateSurface(self):
-        if self.animation:
-            self.animation.append(self.surface)
-            self.surface = self.animation.popleft()
-
-    def getX(self):
-        return self.x
-
-    def setX(self, x: int):
-        self.x = x
-
-    def getY(self):
-        return self.y
-
-    def setY(self, y: int):
-        self.y = y
-
-    def getPosition(self):
-        return self.x, self.y
-
-    def setPosition(self, position: Tuple[int, int]):
-        self.x, self.y = position
-
-
-class Canvas(object):
-
-    def __init__(self, drawables: Dict[Tuple[int, int], pygame.Surface]):
-        self.drawables = drawables
-
-    def getDrawables(self):
-        return self.drawables
-
-    def setDrawables(self, drawables: Dict[Tuple[int, int], pygame.Surface]):
-        self.drawables = drawables
-
-    def getDrawable(self, position: Tuple[int, int]):
-        return self.drawables.get(position)
-
-    def setDrawable(self, position: Tuple[int, int], surface: pygame.Surface):
-        self.drawables[position] = surface
-
-    def deleteDrawable(self, position: Tuple[int, int]):
-        self.drawables.pop(position, None)
-
-    def updatePositions(self, position: Tuple[int, int]):
-        newDrawables: Dict[Tuple[int, int], pygame.Surface] = {}
-
-        for oldPosition in self.drawables.keys():
-            newPosition = tuple(map(sum, zip(oldPosition, position)))
-
-            newDrawables[newPosition] = self.drawables.get(oldPosition)
-
-        self.setDrawables(newDrawables)
+from classes.canvas import Canvas
+from classes.cursor import Cursor
 
 
 class Editor(object):
@@ -98,10 +31,6 @@ class Editor(object):
     def getWidth(self):
         return self.unit_size_x * self.grid_size_x
 
-    def setGridSize(self, grid_size_x: int, grid_size_y: int):
-        self.grid_size_x = max(grid_size_x, 2)
-        self.grid_size_y = max(grid_size_y, 2)
-
     def getHeight(self):
         return self.unit_size_y * self.grid_size_y
 
@@ -110,6 +39,10 @@ class Editor(object):
 
     def getLimitY(self):
         return self.unit_size_y * (self.grid_size_y - 1)
+
+    def setGridSize(self, grid_size_x: int, grid_size_y: int):
+        self.grid_size_x = max(grid_size_x, 2)
+        self.grid_size_y = max(grid_size_y, 2)
 
     def resetCanvas(self):
         self.canvas.setDrawables({})
@@ -202,12 +135,14 @@ class Editor(object):
 
 
 class TextEditor(Editor):
-    def __init__(self, canvas: Canvas, font: pygame.font.Font, grid_size_x: int = 2, grid_size_y: int = 2):
+    def __init__(self, font: pygame.font.Font, grid_size_x: int = 2, grid_size_y: int = 2):
         cursor_surface = font.render('|', False, (255, 255, 255), (0, 0, 0))
         flash_surface = font.render(' ', False, (255, 255, 255), (0, 0, 0))
-        cursor = Cursor(cursor_surface, 0, 0, flash_surface)
 
-        unit_size_x, unit_size_y = cursor_surface.get_width(), cursor_surface.get_height()
+        cursor = Cursor(cursor_surface, 0, 0, flash_surface)
+        canvas = Canvas({})
+        unit_size_x = cursor_surface.get_width()
+        unit_size_y = cursor_surface.get_height()
 
         super().__init__(cursor, canvas, unit_size_x, unit_size_y, grid_size_x, grid_size_y)
 
@@ -219,8 +154,6 @@ class TextEditor(Editor):
                 character, False, (255, 255, 255), (255, 0, 255))
 
         self.characters = character_dict
-
-        self.cursor
 
     def getCharacters(self):
         return self.characters

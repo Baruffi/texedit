@@ -1,9 +1,10 @@
 from tkinter import Tk
 from tkinter.filedialog import askopenfile, asksaveasfile
-import pygame
-from drawable import Canvas, TextEditor
 
-CURSORFLASH: int = pygame.USEREVENT + 1
+import pygame
+
+from classes.editor import TextEditor
+from constants import CURSORFLASH
 
 
 def setup():
@@ -13,7 +14,7 @@ def setup():
 
     font = pygame.font.Font('graphics/fonts/kongtext/kongtext.ttf', 24)
 
-    text_editor = TextEditor(Canvas({}), font, 24, 24)
+    text_editor = TextEditor(font, 24, 24)
 
     text_editor_size = text_editor.getWidth(), text_editor.getHeight()
 
