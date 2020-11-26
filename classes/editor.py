@@ -164,31 +164,77 @@ class TextEditor(Editor):
         else:
             return None
 
-    def carriageReturn(self):
+    def getFirstAfterCursor(self):
         cursor_position = self.cursor.getPosition()
-
         positions = self.canvas.getDrawables().keys()
-        sorted_x = sorted([position[0] for position in positions if position[1]
-                           == cursor_position[1] and position[0] <= cursor_position[0]])
 
-        if len(sorted_x) != 0:
-            final_x = sorted_x.pop()
+        sorted_x = sorted((position[0] for position in positions if position[1]
+                           == cursor_position[1] and position[0] >= cursor_position[0]), reverse=True)
 
+        if len(sorted_x) > 0:
+            return sorted_x.pop()
+
+    def getLastBeforeCursor(self):
+        cursor_position = self.cursor.getPosition()
+        positions = self.canvas.getDrawables().keys()
+
+        sorted_x = sorted(position[0] for position in positions if position[1]
+                          == cursor_position[1] and position[0] <= cursor_position[0])
+
+        if len(sorted_x) > 0:
+            return sorted_x.pop()
+
+    def snapCursorToLastBeforeCursor(self):
+        final_x = self.getLastBeforeCursor()
+
+        if final_x:
             while final_x < 0:
                 self.scrollLeft()
                 final_x += self.unit_size_x
 
             self.cursor.setX(final_x)
 
-            while self.canvas.getDrawable(self.cursor.getPosition()):
-                self.moveCursorBackwards()
-
-            if self.cursor.getX() == 0:
-                self.scrollRight()
-            else:
-                self.moveCursorForwards()
+            return True
         else:
-            self.cursor.setX(0)
+            return False
+
+    def snapCursorToFirstAfterCursor(self):
+        final_x = self.getFirstAfterCursor()
+
+        if final_x:
+            while final_x > self.getLimitX():
+                self.scrollRight()
+                final_x -= self.unit_size_x
+
+            self.cursor.setX(final_x)
+
+            return True
+        else:
+            return False
+
+    def carriageReturn(self):
+        while self.canvas.getDrawable(self.cursor.getPosition()):
+            self.moveCursorBackwards()
+
+        if self.cursor.getX() == 0:
+            self.scrollRight()
+        else:
+            self.moveCursorForwards()
+
+    def carriageLimit(self):
+        while self.canvas.getDrawable(self.cursor.getPosition()):
+            self.moveCursorForwards()
+
+        if self.cursor.getX() == self.getLimitX():
+            self.scrollLeft()
+        else:
+            self.moveCursorBackwards()
+
+    def newLine(self):
+        if self.snapCursorToLastBeforeCursor():
+            self.carriageReturn()
+
+        self.moveCursorDownwards()
 
     def fillString(self, string: str):
         for character in string:
@@ -205,8 +251,7 @@ class TextEditor(Editor):
                     continue
 
             if character == '\n':
-                self.carriageReturn()
-                self.moveCursorDownwards()
+                self.newLine()
                 continue
 
             character_surface = self.getCharacter(character)
@@ -219,6 +264,7 @@ class TextEditor(Editor):
         canvas = self.getCanvas()
         character_items = self.getCharacters().items()
 
+        self.snapCursorToLastBeforeCursor()
         self.carriageReturn()
 
         while (surface := canvas.getDrawable(self.getCursor().getPosition())):

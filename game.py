@@ -37,6 +37,18 @@ def update(text_editor: TextEditor):
             pygame.quit()
 
         if event.type == pygame.KEYDOWN:
+            if pygame.key.get_mods() & pygame.KMOD_ALT:
+                if event.key == pygame.K_c:
+                    pass
+
+                if event.key == pygame.K_MINUS:
+                    pass
+
+                if event.key == pygame.K_PLUS:
+                    pass
+
+                continue
+
             if pygame.key.get_mods() & pygame.KMOD_CTRL:
                 if event.key == pygame.K_LEFT:
                     text_editor.scrollLeft()
@@ -97,28 +109,31 @@ def update(text_editor: TextEditor):
                 text_editor.moveCursorDownwards()
 
             if event.key == pygame.K_RETURN:
-                text_editor.carriageReturn()
-                text_editor.moveCursorDownwards()
+                text_editor.newLine()
 
             if event.key == pygame.K_DELETE:
                 text_editor.deleteUnderCursor()
+                text_editor.moveCursorForwards()
 
             if event.key == pygame.K_BACKSPACE:
                 text_editor.moveCursorBackwards()
-
                 text_editor.deleteUnderCursor()
 
             if event.key == pygame.K_INSERT:
                 text_editor.moveCursorForwards()
-
                 text_editor.deleteUnderCursor()
 
             if event.key == pygame.K_HOME:
-                text_editor.setCursorPosition(0)
+                if text_editor.canvas.getDrawable(text_editor.cursor.getPosition()):
+                    text_editor.carriageReturn()
+                else:
+                    text_editor.snapCursorToLastBeforeCursor()
 
             if event.key == pygame.K_END:
-                limit_x = text_editor.getLimitX()
-                text_editor.setCursorPosition(limit_x)
+                if text_editor.canvas.getDrawable(text_editor.cursor.getPosition()):
+                    text_editor.carriageLimit()
+                else:
+                    text_editor.snapCursorToFirstAfterCursor()
 
             if event.key == pygame.K_PAGEUP:
                 if pygame.key.get_mods() & pygame.KMOD_SHIFT:
