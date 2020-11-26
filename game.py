@@ -119,10 +119,6 @@ def update(text_editor: TextEditor):
                 text_editor.moveCursorBackwards()
                 text_editor.deleteUnderCursor()
 
-            if event.key == pygame.K_INSERT:
-                text_editor.moveCursorForwards()
-                text_editor.deleteUnderCursor()
-
             if event.key == pygame.K_HOME:
                 if text_editor.canvas.getDrawable(text_editor.cursor.getPosition()):
                     text_editor.carriageReturn()
