@@ -18,6 +18,12 @@ class Cursor(object):
     def setSurface(self, surface: pygame.Surface):
         self.surface = surface
 
+    def getAnimation(self):
+        return self.animation
+
+    def setAnimation(self, *animation: pygame.Surface):
+        self.animation = deque(animation)
+
     def updateSurface(self):
         if self.animation:
             self.animation.append(self.surface)

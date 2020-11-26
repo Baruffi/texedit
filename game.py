@@ -5,6 +5,7 @@ import pygame
 
 from classes.editor import TextEditor
 from constants import CURSORFLASH
+from utils.surface import getScaled, getTinted
 
 
 def setup():
@@ -39,13 +40,19 @@ def update(text_editor: TextEditor):
         if event.type == pygame.KEYDOWN:
             if pygame.key.get_mods() & pygame.KMOD_ALT:
                 if event.key == pygame.K_c:
-                    pass
+                    text_editor.updateTint()
 
                 if event.key == pygame.K_MINUS:
-                    pass
+                    x, y = text_editor.getUnitSizes()
+                    text_editor.setUnitSizes(x // 2, y // 2)
+                    x, y = text_editor.getGridSizes()
+                    text_editor.setGridSizes(x * 2, y * 2)
 
-                if event.key == pygame.K_PLUS:
-                    pass
+                if event.key == pygame.K_EQUALS:
+                    x, y = text_editor.getUnitSizes()
+                    text_editor.setUnitSizes(x * 2, y * 2)
+                    x, y = text_editor.getGridSizes()
+                    text_editor.setGridSizes(x // 2, y // 2)
 
                 continue
 
@@ -206,7 +213,7 @@ def update(text_editor: TextEditor):
             new_grid_x = event.w // text_editor.getUnitSizeX()
             new_grid_y = event.h // text_editor.getUnitSizeY()
 
-            text_editor.setGridSize(new_grid_x, new_grid_y)
+            text_editor.setGridSizes(new_grid_x, new_grid_y)
 
             pygame.display.set_mode(
                 (text_editor.getWidth(), text_editor.getHeight()), flags=pygame.RESIZABLE)
@@ -220,11 +227,13 @@ def draw(text_editor: TextEditor, screen: pygame.Surface):
 
     drawables = text_editor.getCanvas().getDrawables().items()
     cursor = text_editor.getCursor()
+    tint = text_editor.getTint()
 
     for position, surface in drawables:
         screen.blit(surface, position)
 
-    screen.blit(cursor.getSurface(), cursor.getPosition())
+    screen.blit(getTinted(getScaled(cursor.getSurface(),
+                                    text_editor.getUnitSizes()), tint), cursor.getPosition())
 
     pygame.display.update()
 

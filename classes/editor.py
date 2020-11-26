@@ -1,6 +1,8 @@
-from typing import Dict
+from collections import deque
+from typing import Deque, Dict, Tuple
 
 import pygame
+from utils.surface import getScaled, getTinted
 
 from classes.canvas import Canvas
 from classes.cursor import Cursor
@@ -8,9 +10,10 @@ from classes.cursor import Cursor
 
 class Editor(object):
 
-    def __init__(self, cursor: Cursor, canvas: Canvas, unit_size_x: int = 1, unit_size_y: int = 1, grid_size_x: int = 2, grid_size_y: int = 2):
+    def __init__(self, cursor: Cursor, canvas: Canvas, tint: Tuple[int, ...] = (0, 0, 0), unit_size_x: int = 1, unit_size_y: int = 1, grid_size_x: int = 2, grid_size_y: int = 2):
         self.cursor = cursor
         self.canvas = canvas
+        self.tint = tint
         self.unit_size_x = max(unit_size_x, 1)
         self.unit_size_y = max(unit_size_y, 1)
         self.grid_size_x = max(grid_size_x, 2)
@@ -22,11 +25,28 @@ class Editor(object):
     def getCanvas(self):
         return self.canvas
 
+    def getTint(self):
+        return self.tint
+
     def getUnitSizeX(self):
         return self.unit_size_x
 
     def getUnitSizeY(self):
         return self.unit_size_y
+
+    def getUnitSizes(self):
+        return self.unit_size_x, self.unit_size_y
+
+    def setUnitSizes(self, unit_size_x: int, unit_size_y: int):
+        self.unit_size_x = max(unit_size_x, 1)
+        self.unit_size_y = max(unit_size_y, 1)
+
+    def getGridSizes(self):
+        return self.grid_size_x, self.grid_size_y
+
+    def setGridSizes(self, grid_size_x: int, grid_size_y: int):
+        self.grid_size_x = max(grid_size_x, 2)
+        self.grid_size_y = max(grid_size_y, 2)
 
     def getWidth(self):
         return self.unit_size_x * self.grid_size_x
@@ -39,10 +59,6 @@ class Editor(object):
 
     def getLimitY(self):
         return self.unit_size_y * (self.grid_size_y - 1)
-
-    def setGridSize(self, grid_size_x: int, grid_size_y: int):
-        self.grid_size_x = max(grid_size_x, 2)
-        self.grid_size_y = max(grid_size_y, 2)
 
     def resetCanvas(self):
         self.canvas.setDrawables({})
@@ -94,8 +110,10 @@ class Editor(object):
 
         if cursor_x > 0:
             self.moveCursorLeft()
+            return False
         else:
             self.scrollLeft()
+            return True
 
     def moveCursorForwards(self):
         cursor_x = self.cursor.getX()
@@ -103,8 +121,10 @@ class Editor(object):
 
         if cursor_x < limit_x:
             self.moveCursorRight()
+            return False
         else:
             self.scrollRight()
+            return True
 
     def moveCursorUpwards(self):
         cursor_y = self.cursor.getY()
@@ -125,8 +145,11 @@ class Editor(object):
 
     def editUnderCursor(self, surface: pygame.Surface):
         position = self.cursor.getPosition()
+        scaled_surface = getScaled(
+            surface, (self.unit_size_x, self.unit_size_y))
+        tinted_surface = getTinted(scaled_surface, self.tint)
 
-        self.canvas.setDrawable(position, surface)
+        self.canvas.setDrawable(position, tinted_surface)
 
     def deleteUnderCursor(self):
         position = self.cursor.getPosition()
@@ -136,33 +159,36 @@ class Editor(object):
 
 class TextEditor(Editor):
     def __init__(self, font: pygame.font.Font, grid_size_x: int = 2, grid_size_y: int = 2):
-        cursor_surface = font.render('|', False, (255, 255, 255), (0, 0, 0))
+        cursor_surface = font.render(
+            '|', False, (255, 255, 255), (0, 0, 0))
         flash_surface = font.render(' ', False, (255, 255, 255), (0, 0, 0))
 
         cursor = Cursor(cursor_surface, 0, 0, flash_surface)
         canvas = Canvas({})
+        tints: Deque[Tuple[int, ...]] = deque([(0, 0, 0), (255, 0, 0), (0, 255, 0), (0, 0, 255),
+                                               (255, 255, 0), (255, 0, 255), (0, 255, 255)])
         unit_size_x = cursor_surface.get_width()
         unit_size_y = cursor_surface.get_height()
 
-        super().__init__(cursor, canvas, unit_size_x, unit_size_y, grid_size_x, grid_size_y)
+        super().__init__(cursor, canvas, tints[0], unit_size_x,
+                         unit_size_y, grid_size_x, grid_size_y)
 
         character_dict: Dict[str, pygame.Surface] = {}
         characters = 'QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasadfghjklzxcvbnm,.;:\\/[]{}()0123456789*+-=<>_&%$#@!?"\'´`~^ '
 
         for character in characters:
             character_dict[character] = font.render(
-                character, False, (255, 255, 255), (255, 0, 255))
+                character, False, (255, 255, 255), (0, 0, 0))
 
         self.characters = character_dict
+
+        self.tints = tints
 
     def getCharacters(self):
         return self.characters
 
     def getCharacter(self, character: str):
-        if character in self.characters.keys():
-            return self.characters[character]
-        else:
-            return None
+        return self.characters.get(character)
 
     def getFirstAfterCursor(self):
         cursor_position = self.cursor.getPosition()
@@ -187,7 +213,7 @@ class TextEditor(Editor):
     def snapCursorToLastBeforeCursor(self):
         final_x = self.getLastBeforeCursor()
 
-        if final_x:
+        if final_x != None:
             while final_x < 0:
                 self.scrollLeft()
                 final_x += self.unit_size_x
@@ -201,7 +227,7 @@ class TextEditor(Editor):
     def snapCursorToFirstAfterCursor(self):
         final_x = self.getFirstAfterCursor()
 
-        if final_x:
+        if final_x != None:
             while final_x > self.getLimitX():
                 self.scrollRight()
                 final_x -= self.unit_size_x
@@ -213,19 +239,23 @@ class TextEditor(Editor):
             return False
 
     def carriageReturn(self):
-        while self.canvas.getDrawable(self.cursor.getPosition()):
-            self.moveCursorBackwards()
+        scrolled = False
 
-        if self.cursor.getX() == 0:
+        while self.canvas.getDrawable(self.cursor.getPosition()):
+            scrolled = self.moveCursorBackwards()
+
+        if scrolled:
             self.scrollRight()
         else:
             self.moveCursorForwards()
 
     def carriageLimit(self):
-        while self.canvas.getDrawable(self.cursor.getPosition()):
-            self.moveCursorForwards()
+        scrolled = False
 
-        if self.cursor.getX() == self.getLimitX():
+        while self.canvas.getDrawable(self.cursor.getPosition()):
+            scrolled = self.moveCursorForwards()
+
+        if scrolled:
             self.scrollLeft()
         else:
             self.moveCursorBackwards()
@@ -241,7 +271,7 @@ class TextEditor(Editor):
             if character in '\x00\r':
                 continue
 
-            space_character = self.getCharacter(' ')
+            space_character = self.characters.get(' ')
             if space_character:
                 if character == '\t':
                     tab = 4
@@ -254,20 +284,19 @@ class TextEditor(Editor):
                 self.newLine()
                 continue
 
-            character_surface = self.getCharacter(character)
+            character_surface = self.characters.get(character)
             if character_surface:
                 self.editUnderCursor(character_surface)
                 self.moveCursorForwards()
 
     def getLine(self, cut: bool = False):
         line = ''
-        canvas = self.getCanvas()
-        character_items = self.getCharacters().items()
+        character_items = self.characters.items()
 
         self.snapCursorToLastBeforeCursor()
         self.carriageReturn()
 
-        while (surface := canvas.getDrawable(self.getCursor().getPosition())):
+        while (surface := self.canvas.getDrawable(self.cursor.getPosition())):
             for character, character_surface in character_items:
                 if surface == character_surface:
                     line += character
@@ -284,12 +313,12 @@ class TextEditor(Editor):
 
     def getContent(self):
         text = ''
-        drawables = self.getCanvas().getDrawables().items()
+        drawables = self.canvas.getDrawables().items()
         sorted_drawables_intermediate = sorted(
             [((position[1], position[0]), surface) for position, surface in drawables])
         sorted_drawables = [((position[1], position[0]), surface)
                             for position, surface in sorted_drawables_intermediate]
-        character_items = self.getCharacters().items()
+        character_items = self.characters.items()
 
         last_y: int = None
 
@@ -310,3 +339,7 @@ class TextEditor(Editor):
 
     def cursorFlash(self):
         self.cursor.updateSurface()
+
+    def updateTint(self):
+        self.tints.rotate()
+        self.tint = self.tints[0]
