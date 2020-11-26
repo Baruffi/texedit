@@ -190,6 +190,8 @@ class TextEditor(Editor):
         self.history: List[Tuple[Tuple[int, int],
                                  Tuple[Tuple[Tuple[int, int], pygame.Surface]]]] = []
 
+        self.state = -1
+
     def getCharacters(self):
         return self.characters
 
@@ -351,15 +353,31 @@ class TextEditor(Editor):
         self.tint = self.tints[0]
 
     def record(self):
-        cursor_position = tuple(self.cursor.getPosition())
-        drawables = tuple(self.canvas.getDrawables().items())
-        self.history = list(dict.fromkeys(
-            [*self.history, (cursor_position, drawables)]))
+        new_state = tuple(self.cursor.getPosition()), tuple(
+            self.canvas.getDrawables().items())
+
+        if len(self.history) == 0 or self.history[self.state] != new_state:
+            self.state += 1
+
+            while self.state < len(self.history):
+                self.history.pop()
+
+            self.history.append(new_state)
 
     def undo(self):
-        if len(self.history) > 1:
-            self.history.pop()
-            cursor_pos, drawables = self.history.pop()
+        if len(self.history) > self.state > 0:
+            self.state -= 1
+
+            cursor_pos, drawables = self.history[self.state]
+
+            self.setCursorPosition(*cursor_pos)
+            self.setCanvasDrawables(*drawables)
+
+    def redo(self):
+        if len(self.history) > self.state + 1 > 0:
+            self.state += 1
+
+            cursor_pos, drawables = self.history[self.state]
 
             self.setCursorPosition(*cursor_pos)
             self.setCanvasDrawables(*drawables)
