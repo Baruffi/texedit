@@ -38,6 +38,8 @@ def update(text_editor: TextEditor):
             pygame.quit()
 
         if event.type == pygame.KEYDOWN:
+            text_editor.record()
+
             if pygame.key.get_mods() & pygame.KMOD_ALT:
                 if event.key == pygame.K_c:
                     text_editor.updateTint()
@@ -100,6 +102,9 @@ def update(text_editor: TextEditor):
                 if event.key == pygame.K_l:
                     text_editor.setCursorPosition(0, 0)
                     text_editor.resetCanvas()
+
+                if event.key == pygame.K_z:
+                    text_editor.undo()
 
                 continue
 
@@ -189,6 +194,8 @@ def update(text_editor: TextEditor):
                     text_editor.moveCursorForwards()
 
         if event.type == pygame.MOUSEBUTTONDOWN:
+            text_editor.record()
+
             if event.button == 4:
                 if pygame.key.get_mods() & pygame.KMOD_SHIFT:
                     text_editor.scrollLeft()

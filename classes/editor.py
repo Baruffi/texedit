@@ -1,5 +1,5 @@
 from collections import deque
-from typing import Deque, Dict, Tuple
+from typing import Deque, Dict, List, Tuple
 
 import pygame
 from utils.surface import getScaled, getTinted
@@ -74,6 +74,9 @@ class Editor(object):
 
     def scrollDown(self):
         self.canvas.updatePositions((0, -self.unit_size_y))
+
+    def setCanvasDrawables(self, *drawables: Tuple[Tuple[int, int], pygame.Surface]):
+        self.canvas.setDrawables(dict(drawables))
 
     def setCursorPosition(self, x: int = None, y: int = None):
         if x == None and y == None:
@@ -183,6 +186,9 @@ class TextEditor(Editor):
         self.characters = character_dict
 
         self.tints = tints
+
+        self.history: List[Tuple[Tuple[int, int],
+                                 Tuple[Tuple[Tuple[int, int], pygame.Surface]]]] = []
 
     def getCharacters(self):
         return self.characters
@@ -343,3 +349,17 @@ class TextEditor(Editor):
     def updateTint(self):
         self.tints.rotate()
         self.tint = self.tints[0]
+
+    def record(self):
+        cursor_position = tuple(self.cursor.getPosition())
+        drawables = tuple(self.canvas.getDrawables().items())
+        self.history = list(dict.fromkeys(
+            [*self.history, (cursor_position, drawables)]))
+
+    def undo(self):
+        if len(self.history) > 1:
+            self.history.pop()
+            cursor_pos, drawables = self.history.pop()
+
+            self.setCursorPosition(*cursor_pos)
+            self.setCanvasDrawables(*drawables)
