@@ -38,6 +38,8 @@ def update(text_editor: TextEditor):
             pygame.quit()
 
         if event.type == pygame.KEYDOWN:
+            text_editor.record()
+
             if pygame.key.get_mods() & pygame.KMOD_ALT:
                 if event.key == pygame.K_c:
                     text_editor.updateTint()
@@ -82,22 +84,14 @@ def update(text_editor: TextEditor):
                                      copy_text.encode('ascii'))
 
                 if event.key == pygame.K_v:
-                    text_editor.record()
-
                     text: str = pygame.scrap.get(
                         pygame.SCRAP_TEXT).decode('ascii')
                     text_editor.fillString(text)
 
-                    text_editor.record()
-
                 if event.key == pygame.K_o:
                     if (file := askopenfile('r')):
-                        text_editor.record()
-
                         text: str = file.read()
                         text_editor.fillString(text)
-
-                        text_editor.record()
 
                 if event.key == pygame.K_s:
                     if (file := asksaveasfile('w')):
@@ -106,12 +100,8 @@ def update(text_editor: TextEditor):
                         file.write(content)
 
                 if event.key == pygame.K_l:
-                    text_editor.record()
-
                     text_editor.setCursorPosition(0, 0)
                     text_editor.resetCanvas()
-
-                    text_editor.record()
 
                 if event.key == pygame.K_z:
                     text_editor.undo()
@@ -137,20 +127,12 @@ def update(text_editor: TextEditor):
                 text_editor.newLine()
 
             if event.key == pygame.K_DELETE:
-                text_editor.record()
-
                 text_editor.deleteUnderCursor()
                 text_editor.moveCursorForwards()
 
-                text_editor.record()
-
             if event.key == pygame.K_BACKSPACE:
-                text_editor.record()
-
                 text_editor.moveCursorBackwards()
                 text_editor.deleteUnderCursor()
-
-                text_editor.record()
 
             if event.key == pygame.K_HOME:
                 if text_editor.canvas.getDrawable(text_editor.cursor.getPosition()):
@@ -211,12 +193,8 @@ def update(text_editor: TextEditor):
             if event.unicode:
                 character = text_editor.getCharacter(event.unicode)
                 if character:
-                    text_editor.record()
-
                     text_editor.editUnderCursor(character)
                     text_editor.moveCursorForwards()
-
-                    text_editor.record()
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 4:
