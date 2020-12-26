@@ -191,10 +191,7 @@ def update(text_editor: TextEditor):
                         text_editor.setCursorPosition(limit_x)
 
             if event.unicode:
-                character = text_editor.getCharacter(event.unicode)
-                if character:
-                    text_editor.editUnderCursor(character)
-                    text_editor.moveCursorForwards()
+                text_editor.fillString(event.unicode)
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 4:
@@ -237,8 +234,9 @@ def draw(text_editor: TextEditor, screen: pygame.Surface):
     cursor = text_editor.getCursor()
     tint = text_editor.getTint()
 
-    for position, surface in drawables:
-        screen.blit(surface, position)
+    for position, drawable in drawables:
+        screen.blit(
+            drawable[1], position)
 
     screen.blit(getTinted(getScaled(cursor.getSurface(),
                                     text_editor.getUnitSizes()), tint), cursor.getPosition())

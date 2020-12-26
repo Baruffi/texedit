@@ -1,19 +1,19 @@
 from collections import deque
-from typing import Deque, Dict, List, Tuple
+from typing import Deque, List, Tuple, TypeVar, Generic
 
 import pygame
-from utils.surface import getScaled, getTinted
 
 from classes.canvas import Canvas
 from classes.cursor import Cursor
 
+T = TypeVar('T')
 
-class Editor(object):
 
-    def __init__(self, cursor: Cursor, canvas: Canvas, tint: Tuple[int, ...] = (0, 0, 0), unit_size_x: int = 1, unit_size_y: int = 1, grid_size_x: int = 2, grid_size_y: int = 2):
+class Editor(Generic[T]):
+
+    def __init__(self, cursor: Cursor, canvas: Canvas[T], unit_size_x: int = 1, unit_size_y: int = 1, grid_size_x: int = 2, grid_size_y: int = 2):
         self.cursor = cursor
         self.canvas = canvas
-        self.tint = tint
         self.unit_size_x = max(unit_size_x, 1)
         self.unit_size_y = max(unit_size_y, 1)
         self.grid_size_x = max(grid_size_x, 2)
@@ -24,9 +24,6 @@ class Editor(object):
 
     def getCanvas(self):
         return self.canvas
-
-    def getTint(self):
-        return self.tint
 
     def getUnitSizeX(self):
         return self.unit_size_x
@@ -75,7 +72,7 @@ class Editor(object):
     def scrollDown(self):
         self.canvas.updatePositions((0, -self.unit_size_y))
 
-    def setCanvasDrawables(self, *drawables: Tuple[Tuple[int, int], pygame.Surface]):
+    def setCanvasDrawables(self, *drawables: Tuple[Tuple[int, int], T]):
         self.canvas.setDrawables(dict(drawables))
 
     def setCursorPosition(self, x: int = None, y: int = None):
@@ -146,13 +143,10 @@ class Editor(object):
         else:
             self.scrollDown()
 
-    def editUnderCursor(self, surface: pygame.Surface):
+    def editUnderCursor(self, drawable: T):
         position = self.cursor.getPosition()
-        scaled_surface = getScaled(
-            surface, (self.unit_size_x, self.unit_size_y))
-        tinted_surface = getTinted(scaled_surface, self.tint)
 
-        self.canvas.setDrawable(position, tinted_surface)
+        self.canvas.setDrawable(position, drawable)
 
     def deleteUnderCursor(self):
         position = self.cursor.getPosition()
@@ -160,43 +154,38 @@ class Editor(object):
         self.canvas.deleteDrawable(position)
 
 
-class TextEditor(Editor):
+class TextEditor(Editor[Tuple[str, pygame.Surface]]):
     def __init__(self, font: pygame.font.Font, grid_size_x: int = 2, grid_size_y: int = 2):
         cursor_surface = font.render(
             '|', False, (255, 255, 255), (0, 0, 0))
         flash_surface = font.render(' ', False, (255, 255, 255), (0, 0, 0))
 
         cursor = Cursor(cursor_surface, 0, 0, flash_surface)
-        canvas = Canvas({})
+        canvas = Canvas[Tuple[str, pygame.Surface]]({})
         tints: Deque[Tuple[int, ...]] = deque([(0, 0, 0), (255, 0, 0), (0, 255, 0), (0, 0, 255),
                                                (255, 255, 0), (255, 0, 255), (0, 255, 255)])
         unit_size_x = cursor_surface.get_width()
         unit_size_y = cursor_surface.get_height()
 
-        super().__init__(cursor, canvas, tints[0], unit_size_x,
+        super().__init__(cursor, canvas, unit_size_x,
                          unit_size_y, grid_size_x, grid_size_y)
 
-        character_dict: Dict[str, pygame.Surface] = {}
-        characters = 'QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasadfghjklzxcvbnm,.;:\\/[]{}()0123456789*+-=<>_&%$#@!?"\'´`~^ '
-
-        for character in characters:
-            character_dict[character] = font.render(
-                character, False, (255, 255, 255), (0, 0, 0))
-
-        self.characters = character_dict
+        self.font = font
 
         self.tints = tints
 
-        self.history: List[Tuple[Tuple[int, int],
-                                 Tuple[Tuple[Tuple[int, int], pygame.Surface]]]] = []
+        self.tint = tints[0]
 
         self.state = -1
 
-    def getCharacters(self):
-        return self.characters
+        self.history: List[Tuple[Tuple[int, int],
+                                 Tuple[Tuple[Tuple[int, int], Tuple[str, pygame.Surface]]]]] = []
 
-    def getCharacter(self, character: str):
-        return self.characters.get(character)
+    def getTint(self):
+        return self.tint
+
+    def renderCharacter(self, character: str, color: pygame.Color = (255, 255, 255)):
+        return self.font.render(character, False, color, self.tint)
 
     def getFirstAfterCursor(self):
         cursor_position = self.cursor.getPosition()
@@ -279,71 +268,58 @@ class TextEditor(Editor):
             if character in '\x00\r':
                 continue
 
-            space_character = self.characters.get(' ')
-            if space_character:
-                if character == '\t':
-                    tab = 4
-                    for _ in range(tab):
-                        self.editUnderCursor(space_character)
-                        self.moveCursorForwards()
-                    continue
+            if character == '\t':
+                tab = 4
+                for _ in range(tab):
+                    self.editUnderCursor(('', self.renderCharacter(' ')))
+                    self.moveCursorForwards()
+                continue
 
             if character == '\n':
                 self.newLine()
                 continue
 
-            character_surface = self.characters.get(character)
-            if character_surface:
-                self.editUnderCursor(character_surface)
-                self.moveCursorForwards()
+            self.editUnderCursor((character, self.renderCharacter(character)))
+            self.moveCursorForwards()
 
     def getLine(self, cut: bool = False):
         line = ''
-        character_items = self.characters.items()
 
         self.snapCursorToLastBeforeCursor()
         self.carriageReturn()
 
-        while (surface := self.canvas.getDrawable(self.cursor.getPosition())):
-            for character, character_surface in character_items:
-                if surface == character_surface:
-                    line += character
-                    break
+        while (drawable := self.canvas.getDrawable(self.cursor.getPosition())):
+            line += drawable[0]
 
             self.moveCursorForwards()
 
         if cut:
-            for character in line:
+            for _ in line:
                 self.moveCursorBackwards()
                 self.deleteUnderCursor()
 
         return line
 
     def getContent(self):
-        text = ''
-        drawables = self.canvas.getDrawables().items()
-        sorted_drawables_intermediate = sorted(
-            [((position[1], position[0]), surface) for position, surface in drawables])
-        sorted_drawables = [((position[1], position[0]), surface)
-                            for position, surface in sorted_drawables_intermediate]
-        character_items = self.characters.items()
+        content = ''
+        positions = self.canvas.getDrawables().keys()
 
-        last_y: int = None
+        sorted_yx = sorted(((position[1], position[0])
+                            for position in positions))
 
-        for position, surface in sorted_drawables:
-            if last_y != None:
-                current_y = position[1] // self.unit_size_y
+        last_y = -1
 
-                text += '\n' * (current_y - last_y)
+        for y, x in sorted_yx:
+            if -1 != last_y != y:
+                content += '\n' * ((y - last_y) // self.unit_size_y)
 
-            for character, character_surface in character_items:
-                if surface == character_surface:
-                    text += character
-                    break
+            drawable = self.canvas.getDrawable((x, y))
 
-            last_y = position[1] // self.unit_size_y
+            if drawable:
+                content += drawable[0]
+                last_y = y
 
-        return text
+        return content
 
     def cursorFlash(self):
         self.cursor.updateSurface()
@@ -364,20 +340,18 @@ class TextEditor(Editor):
 
             self.history.append(new_state)
 
+    def load(self):
+        cursor_pos, drawables = self.history[self.state]
+
+        self.setCursorPosition(*cursor_pos)
+        self.setCanvasDrawables(*drawables)
+
     def undo(self):
         if len(self.history) > self.state > 0:
             self.state -= 1
-
-            cursor_pos, drawables = self.history[self.state]
-
-            self.setCursorPosition(*cursor_pos)
-            self.setCanvasDrawables(*drawables)
+            self.load()
 
     def redo(self):
         if len(self.history) > self.state + 1 > 0:
             self.state += 1
-
-            cursor_pos, drawables = self.history[self.state]
-
-            self.setCursorPosition(*cursor_pos)
-            self.setCanvasDrawables(*drawables)
+            self.load()
