@@ -233,13 +233,14 @@ def draw(text_editor: TextEditor, screen: pygame.Surface):
     drawables = text_editor.getCanvas().getDrawables().items()
     cursor = text_editor.getCursor()
     tint = text_editor.getTint()
+    scale = text_editor.getUnitSizes()
 
     for position, drawable in drawables:
         screen.blit(
-            drawable[1], position)
+            getTinted(getScaled(drawable[1], drawable[2]), drawable[3]), position)
 
-    screen.blit(getTinted(getScaled(cursor.getSurface(),
-                                    text_editor.getUnitSizes()), tint), cursor.getPosition())
+    screen.blit(getTinted(getScaled(cursor.getSurface(), scale),
+                          tint), cursor.getPosition())
 
     pygame.display.update()
 

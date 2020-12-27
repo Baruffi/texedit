@@ -154,14 +154,15 @@ class Editor(Generic[T]):
         self.canvas.deleteDrawable(position)
 
 
-class TextEditor(Editor[Tuple[str, pygame.Surface]]):
+class TextEditor(Editor[Tuple[str, pygame.Surface, Tuple[int, ...], Tuple[int, ...]]]):
     def __init__(self, font: pygame.font.Font, grid_size_x: int = 2, grid_size_y: int = 2):
         cursor_surface = font.render(
             '|', False, (255, 255, 255), (0, 0, 0))
         flash_surface = font.render(' ', False, (255, 255, 255), (0, 0, 0))
 
         cursor = Cursor(cursor_surface, 0, 0, flash_surface)
-        canvas = Canvas[Tuple[str, pygame.Surface]]({})
+        canvas = Canvas[Tuple[str, pygame.Surface,
+                              Tuple[int, ...], Tuple[int, ...]]]({})
         tints: Deque[Tuple[int, ...]] = deque([(0, 0, 0), (255, 0, 0), (0, 255, 0), (0, 0, 255),
                                                (255, 255, 0), (255, 0, 255), (0, 255, 255)])
         unit_size_x = cursor_surface.get_width()
@@ -179,13 +180,13 @@ class TextEditor(Editor[Tuple[str, pygame.Surface]]):
         self.state = -1
 
         self.history: List[Tuple[Tuple[int, int],
-                                 Tuple[Tuple[Tuple[int, int], Tuple[str, pygame.Surface]]]]] = []
+                                 Tuple[Tuple[Tuple[int, int], Tuple[str, pygame.Surface, Tuple[int, ...], Tuple[int, ...]]]]]] = []
 
     def getTint(self):
         return self.tint
 
-    def renderCharacter(self, character: str, color: pygame.Color = (255, 255, 255)):
-        return self.font.render(character, False, color, self.tint)
+    def renderCharacter(self, character: str, color: pygame.Color = (255, 255, 255), background: pygame.Color = (0, 0, 0)):
+        return self.font.render(character, False, color, background)
 
     def getFirstAfterCursor(self):
         cursor_position = self.cursor.getPosition()
@@ -271,7 +272,8 @@ class TextEditor(Editor[Tuple[str, pygame.Surface]]):
             if character == '\t':
                 tab = 4
                 for _ in range(tab):
-                    self.editUnderCursor(('', self.renderCharacter(' ')))
+                    self.editUnderCursor(('', self.renderCharacter(
+                        ' '), self.getUnitSizes(), self.getTint()))
                     self.moveCursorForwards()
                 continue
 
@@ -279,7 +281,8 @@ class TextEditor(Editor[Tuple[str, pygame.Surface]]):
                 self.newLine()
                 continue
 
-            self.editUnderCursor((character, self.renderCharacter(character)))
+            self.editUnderCursor((character, self.renderCharacter(
+                character), self.getUnitSizes(), self.getTint()))
             self.moveCursorForwards()
 
     def getLine(self, cut: bool = False):
