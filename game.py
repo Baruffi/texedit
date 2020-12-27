@@ -126,14 +126,6 @@ def update(text_editor: TextEditor):
             if event.key == pygame.K_RETURN:
                 text_editor.newLine()
 
-            if event.key == pygame.K_DELETE:
-                text_editor.deleteUnderCursor()
-                text_editor.moveCursorForwards()
-
-            if event.key == pygame.K_BACKSPACE:
-                text_editor.moveCursorBackwards()
-                text_editor.deleteUnderCursor()
-
             if event.key == pygame.K_HOME:
                 if text_editor.canvas.getDrawable(text_editor.cursor.getPosition()):
                     text_editor.carriageReturn()
@@ -190,6 +182,20 @@ def update(text_editor: TextEditor):
                     else:
                         text_editor.setCursorPosition(limit_x)
 
+                continue
+
+            if event.key == pygame.K_DELETE:
+                text_editor.deleteUnderCursor()
+                text_editor.moveCursorForwards()
+
+                continue
+
+            if event.key == pygame.K_BACKSPACE:
+                text_editor.moveCursorBackwards()
+                text_editor.deleteUnderCursor()
+
+                continue
+
             if event.unicode:
                 text_editor.fillString(event.unicode)
 
@@ -228,12 +234,12 @@ def update(text_editor: TextEditor):
 
 
 def draw(text_editor: TextEditor, screen: pygame.Surface):
-    screen.fill((0, 0, 0))
-
     drawables = text_editor.getCanvas().getDrawables().items()
     cursor = text_editor.getCursor()
     tint = text_editor.getTint()
     scale = text_editor.getUnitSizes()
+
+    screen.fill((0, 0, 0))
 
     for position, drawable in drawables:
         screen.blit(
